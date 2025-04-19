@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reverse Pong Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000000;
+            font-family: Arial, sans-serif;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 1000px;
+            height: 500px;
+            /* Replace the background-color with a background-image */
+            background-image: url('Images/Aran_PongGameBackground.png'); /* Replace with your image URL */
+            background-size: cover; /* Makes the image cover the entire container */
+            background-position: center; /* Centers the image */
+            overflow: hidden;
+            border: 2px solid #444;
+        }
+        
+        #paddle {
+            position: absolute;
+            bottom: 10px;
+            width: 150px;
+            height: 15px;
+            background-color: #fff;
+            border-radius: 10px;
+        }
+        
+        #ball {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: #0CE4BC;
+            border-radius: 50%;
+        }
+        
+        #score {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #fff;
+            font-size: 24px;
+        }
+        
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #000000;
+            font-size: 32px;
+            text-align: center;
+            display: none;
+        }
+        
+        #start-button {
+            position: absolute;
+            top: 70%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            background-color: #045734;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="ball"></div>
+        <div id="paddle"></div>
+        <div id="score">Bounces: 0</div>
+        <div id="message"></div>
+        <button id="start-button">Start Game</button>
+    </div>
+
+    <script>
+        // Game elements
+        const gameContainer = document.getElementById('game-container');
+        const ball = document.getElementById('ball');
+        const paddle = document.getElementById('paddle');
+        const scoreElement = document.getElementById('score');
+        const messageElement = document.getElementById('message');
+        const startButton = document.getElementById('start-button');
+        
+        // Game variables
+        let ballX = 300;
+        let ballY = 50;
+        let ballSpeedX = 3;
+        let ballSpeedY = 3;
+        let paddleX = 250;
+        const paddleWidth = 100;
+        const paddleHeight = 10;
+        const ballSize = 15;
+        let score = 0;
+        let gameRunning = false;
+        let gameInterval;
+        
+        // Initialize game
+        function initGame() {
+            // Reset ball position
+            ballX = Math.random() * (gameContainer.offsetWidth - ballSize);
+            ballY = 50;
+            
+            // Random ball direction
+            ballSpeedX = (Math.random() > 0.5 ? 1 : -1) * (2 + Math.random() * 2);
+            ballSpeedY = 2 + Math.random() * 2;
+            
+            // Reset paddle position
+            paddleX = (gameContainer.offsetWidth - paddleWidth) / 2;
+            
+            // Reset score
+            score = 0;
+            scoreElement.textContent = `Bounces: ${score}`;
+            
+            // Hide message
+            messageElement.style.display = 'none';
+            
+            // Update positions
+            updatePositions();
+        }
+        
+        // Update game positions
+        function updatePositions() {
+            ball.style.left = `${ballX}px`;
+            ball.style.top = `${ballY}px`;
+            paddle.style.left = `${paddleX}px`;
+        }
+        
+        // Game loop
+        function gameLoop() {
+            // Move ball
+            ballX += ballSpeedX;
+            ballY += ballSpeedY;
+            
+            // Ball collision with walls
+            if (ballX <= 0 || ballX >= gameContainer.offsetWidth - ballSize) {
+                ballSpeedX = -ballSpeedX;
+            }
+            
+            // Ball collision with ceiling
+            if (ballY <= 0) {
+                ballSpeedY = -ballSpeedY;
+            }
+            
+            // Ball collision with paddle
+            if (
+                ballY >= gameContainer.offsetHeight - paddleHeight - ballSize &&
+                ballX + ballSize >= paddleX &&
+                ballX <= paddleX + paddleWidth
+            ) {
+                ballSpeedY = -ballSpeedY;
+                score++;
+                scoreElement.textContent = `Bounces: ${score}`;
+                
+                // Increase difficulty
+                if (score % 5 === 0) {
+                    ballSpeedX *= 1.1;
+                    ballSpeedY *= 1.1;
+                }
+            }
+            
+            // Ball falls past paddle (win condition)
+            if (ballY >= gameContainer.offsetHeight) {
+                endGame(true);
+            }
+            
+            // Update positions
+            updatePositions();
+        }
+        
+        // End game
+        function endGame(win) {
+            gameRunning = false;
+            clearInterval(gameInterval);
+            
+            if (win) {
+                messageElement.textContent = `You Won!\nFinal Score: ${score} bounces`;
+            } else {
+                messageElement.textContent = 'Game Paused';
+            }
+            
+            messageElement.style.display = 'block';
+            startButton.style.display = 'block';
+            startButton.textContent = 'Play Again';
+        }
+        
+        // Start game
+        function startGame() {
+            initGame();
+            gameRunning = true;
+            startButton.style.display = 'none';
+            
+            // Clear previous interval if exists
+            if (gameInterval) {
+                clearInterval(gameInterval);
+            }
+            
+            // Start game loop
+            gameInterval = setInterval(gameLoop, 16);
+        }
+        
+        // Event listeners
+        startButton.addEventListener('click', startGame);
+        
+        // Mouse movement for paddle control
+        gameContainer.addEventListener('mousemove', (e) => {
+            if (gameRunning) {
+                const rect = gameContainer.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                
+                // Keep paddle within game container
+                if (mouseX >= 0 && mouseX <= gameContainer.offsetWidth - paddleWidth) {
+                    paddleX = mouseX;
+                    updatePositions();
+                }
+            }
+        });
+        
+        // Touch movement for mobile
+        gameContainer.addEventListener('touchmove', (e) => {
+            if (gameRunning) {
+                e.preventDefault();
+                const rect = gameContainer.getBoundingClientRect();
+                const touchX = e.touches[0].clientX - rect.left;
+                
+                // Keep paddle within game container
+                if (touchX >= 0 && touchX <= gameContainer.offsetWidth - paddleWidth) {
+                    paddleX = touchX;
+                    updatePositions();
+                }
+            }
+        }, { passive: false });
+        
+        // Initialize positions
+        updatePositions();
+    </script>
+</body>
+</html>
